@@ -4,6 +4,7 @@ import android.animation.ArgbEvaluator
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -34,8 +35,10 @@ import com.example.meta_my_memory.models.UserImageList
 import com.example.meta_my_memory.utils.EXTRA_BOARD_SIZE
 import com.example.meta_my_memory.utils.EXTRA_GAME_NAME
 import com.squareup.picasso.Picasso
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
+
 
   companion object {
     private const val TAG = "MainActivity"
@@ -56,6 +59,9 @@ class MainActivity : AppCompatActivity() {
   private lateinit var adapter: MemoryBoardAdapter
   private var boardSize = BoardSize.EASY
 
+  private lateinit var mp: MediaPlayer;
+  private var totalTime: Int = 0;
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
@@ -63,6 +69,13 @@ class MainActivity : AppCompatActivity() {
     rvBoard = findViewById(R.id.rvBoard)
     tvNumMoves = findViewById(R.id.tvNumMoves)
     tvNumPairs = findViewById(R.id.tvNumPairs)
+
+//    playMusic();
+//
+//    //auto music
+    mp = MediaPlayer.create(this, R.raw.song);
+//    mp.isLooping = true
+//    totalTime = mp.duration
 
     remoteConfig.setDefaultsAsync(mapOf("about_link" to "https://www.youtube.com/rpandey1234", "scaled_height" to 250L, "compress_quality" to 60L))
     remoteConfig.fetchAndActivate()
@@ -74,7 +87,13 @@ class MainActivity : AppCompatActivity() {
         }
       }
     setupBoard()
+
+
   }
+
+//  private fun playMusic(){
+//    mp.start()
+//  }
 
   override fun onCreateOptionsMenu(menu: Menu?): Boolean {
     menuInflater.inflate(R.menu.menu_main, menu)
@@ -270,12 +289,14 @@ class MainActivity : AppCompatActivity() {
       tvNumPairs.text = "Pairs: ${memoryGame.numPairsFound} / ${boardSize.getNumPairs()}"
       if (memoryGame.haveWonGame()) {
         Snackbar.make(clRoot, "You won! Congratulations.", Snackbar.LENGTH_LONG).show()
+        mp.start()
         CommonConfetti.rainingConfetti(clRoot, intArrayOf(Color.YELLOW, Color.GREEN, Color.MAGENTA)).oneShot()
         firebaseAnalytics.logEvent("won_game") {
           param("game_name", gameName ?: "[default]")
           param("board_size", boardSize.name)
         }
       }
+
     }
     tvNumMoves.text = "Moves: ${memoryGame.getNumMoves()}"
     adapter.notifyDataSetChanged()
