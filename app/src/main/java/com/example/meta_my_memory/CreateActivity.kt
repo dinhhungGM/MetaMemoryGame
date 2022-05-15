@@ -1,4 +1,4 @@
-package com.example.meta_my_memory.creation
+package com.example.meta_my_memory
 
 import android.app.Activity
 import android.content.Intent
@@ -28,7 +28,6 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.storage.ktx.storage
-import com.example.meta_my_memory.R
 import com.example.meta_my_memory.models.BoardSize
 import com.example.meta_my_memory.utils.BitmapScaler
 import com.example.meta_my_memory.utils.EXTRA_BOARD_SIZE

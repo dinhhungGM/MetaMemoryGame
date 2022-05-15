@@ -1,11 +1,11 @@
 package com.example.meta_my_memory
 
 import android.animation.ArgbEvaluator
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
-import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -28,11 +28,9 @@ import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
-import com.example.meta_my_memory.creation.CreateActivity
 import com.example.meta_my_memory.models.*
 import com.example.meta_my_memory.utils.EXTRA_BOARD_SIZE
 import com.example.meta_my_memory.utils.EXTRA_GAME_NAME
-import com.google.firebase.firestore.ktx.toObject
 import com.squareup.picasso.Picasso
 
 
@@ -128,6 +126,7 @@ class MainActivity : AppCompatActivity() {
     super.onActivityResult(requestCode, resultCode, data)
   }
 
+  @SuppressLint("InflateParams")
   private fun showDownloadDialog() {
     val boardDownloadView = LayoutInflater.from(this).inflate(R.layout.dialog_download_board, null)
     showAlertDialog("Fetch memory game", boardDownloadView, View.OnClickListener {
@@ -171,6 +170,7 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
+  @SuppressLint("InflateParams")
   private fun showCreationDialog() {
     firebaseAnalytics.logEvent("creation_show_dialog", null)
     val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
@@ -190,6 +190,7 @@ class MainActivity : AppCompatActivity() {
     })
   }
 
+  @SuppressLint("InflateParams")
   private fun showNewSizeDialog() {
     val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
     val radioGroupSize = boardSizeView.findViewById<RadioGroup>(R.id.radioGroupSize)
@@ -226,10 +227,15 @@ class MainActivity : AppCompatActivity() {
       .addOnSuccessListener { document ->
         val data = document.toObject(MemoryScore::class.java);
 
-        if(data == null || data.scores == null) {
+        if(data?.scores == null) {
           supportActionBar?.title = "Highest Score: 0";
         }else {
-          supportActionBar?.title = "Highest Score: ${data.scores.highest_score}";
+          val currentScore: Score? = data.scores!!.find { score -> score.board_size == boardSize.name };
+
+          if(currentScore != null)
+            supportActionBar?.title = "Highest Score: ${currentScore?.highest_score}";
+          else
+            supportActionBar?.title = "Highest Score: 0";
         }
       }
 
@@ -259,27 +265,44 @@ class MainActivity : AppCompatActivity() {
     rvBoard.layoutManager = GridLayoutManager(this, boardSize.getWidth())
   }
 
-  private fun saveHighestScore(gameName: String, highest_score: Int, board_size: String) {
-    db.collection("games").document(gameName)
-      .update("scores", object {
-          val highest_score = highest_score;
-          val board_size = board_size;
-      })
-      .addOnCompleteListener(this) { task ->
-        if (task.isSuccessful) {
-          Log.i(TAG, "Save score succeeded,  ${task.result}");
-          showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${board_size}, Highest score: $highest_score", null, View.OnClickListener {
+  private fun saveHighestScore(gameName: String, highest_score: Int, board_size: String, scores: List<Score>, action: String) {
+    if(action == "update") {
+      db.collection("games").document(gameName)
+        .update("scores", scores)
+        .addOnCompleteListener(this) { task ->
+          if (task.isSuccessful) {
+            Log.i(TAG, "Save score succeeded,  ${task.result}")
+            showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${board_size}, Highest score: $highest_score", null, View.OnClickListener {
 
-          })
+            })
 
-        } else {
-          Log.e(TAG, "Save score failed")
+          } else {
+
+            Log.e(TAG, "Save score failed ${task.result}")
+          }
         }
-      };
+    }else {
+      db.collection("games").document(gameName)
+        .set(MemoryScore(scores))
+        .addOnCompleteListener(this) { task ->
+          if (task.isSuccessful) {
+            Log.i(TAG, "Save score succeeded,  ${task.result}")
+            showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${board_size}, Highest score: $highest_score", null, View.OnClickListener {
+
+            })
+
+          } else {
+
+            Log.e(TAG, "Save score failed ${task.result}")
+          }
+        }
+    }
+    supportActionBar?.title = "Highest Score: ${highest_score}";
 
   }
 
   // check win or not
+  @SuppressLint("NotifyDataSetChanged", "SetTextI18n")
   private fun updateGameWithFlip(position: Int) {
     // Error handling:
     if (memoryGame.haveWonGame()) {
@@ -308,15 +331,44 @@ class MainActivity : AppCompatActivity() {
         db.collection("games").document(gameName ?: "[default]").get()
           .addOnSuccessListener{ document ->
            val data = document.toObject(MemoryScore::class.java);
-            Log.i(TAG, "data,  ${data}");
-            if(data?.scores != null && data.scores.highest_score != -1 && memoryGame.getNumMoves() < data.scores.highest_score!!) {
-              saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name);
-            }else {
-              if(data?.scores == null || data.scores.highest_score == -1) {
-                saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name);
-              }else {
-                  showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${boardSize.name}, Highest score: ${data.scores.highest_score}", null, View.OnClickListener {
+            Log.i(TAG, "data,  $data")
 
+            val currentScoreIndex: Int? = data?.scores?.indexOfFirst { score -> score.board_size == boardSize.name }
+
+
+            val newScore = Score(
+              boardSize.name, memoryGame.getNumMoves()
+            )
+
+            // Khong ton tai score trong array
+            if(data?.scores == null || currentScoreIndex == null || currentScoreIndex == -1) {
+              if(currentScoreIndex == -1) {
+                val updatedScores =  data.scores!!.toMutableList();
+                updatedScores.add(newScore);
+                saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name,
+                  updatedScores.toList(), "update"
+                )
+              }else {
+                saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name,
+                  listOf(newScore), "save"
+                )
+              }
+
+            }else {
+              val currentScore: Score = data.scores!![currentScoreIndex]
+              if(memoryGame.getNumMoves() < currentScore.highest_score!!) {
+                val newScore = Score(
+                  boardSize.name, memoryGame.getNumMoves()
+                );
+
+                val updatedScores =  data.scores!!.toMutableList();
+                updatedScores[currentScoreIndex] = newScore;
+
+                saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name,
+                  updatedScores.toList(), "update"
+                );
+              }else {
+                  showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${boardSize.name}, Highest score: ${currentScore.highest_score}", null, View.OnClickListener {
                 })
               }
             }

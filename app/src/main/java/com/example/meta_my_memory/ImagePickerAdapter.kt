@@ -1,4 +1,4 @@
-package com.example.meta_my_memory.creation
+package com.example.meta_my_memory
 
 import android.content.Context
 import android.net.Uri
@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.meta_my_memory.R
 import com.example.meta_my_memory.models.BoardSize
 import kotlin.math.min
 
