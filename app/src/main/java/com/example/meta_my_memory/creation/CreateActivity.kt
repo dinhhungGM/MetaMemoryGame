@@ -150,6 +150,7 @@ class CreateActivity : AppCompatActivity() {
     }
   }
 
+  // Upload a image to firebase storage
   private fun handleImageUploading(gameName: String) {
     pbUploading.visibility = View.VISIBLE
     val uploadedImageUrls = mutableListOf<String>()
@@ -184,6 +185,7 @@ class CreateActivity : AppCompatActivity() {
     }
   }
 
+  // save images to firebase database
   private fun handleAllImagesUploaded(gameName: String, imageUrls: MutableList<String>) {
     db.collection("games").document(gameName)
       .set(mapOf("images" to imageUrls))
@@ -209,6 +211,7 @@ class CreateActivity : AppCompatActivity() {
       }
   }
 
+  // get image to byte array
   private fun getImageByteArray(photoUri: Uri): ByteArray {
     val originalBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       val source = ImageDecoder.createSource(contentResolver, photoUri)

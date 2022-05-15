@@ -20,5 +20,5 @@
         android:title="Download custom game" />
     <item
         android:id="@+id/mi_about"
-        android:title="Created by Rahul ➡️" />
+        android:title="Created by Xuan Hung, Dinh Khang " />
 </menu>

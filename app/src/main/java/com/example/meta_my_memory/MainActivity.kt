@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -28,12 +29,12 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.example.meta_my_memory.creation.CreateActivity
-import com.example.meta_my_memory.models.BoardSize
-import com.example.meta_my_memory.models.MemoryGame
-import com.example.meta_my_memory.models.UserImageList
+import com.example.meta_my_memory.models.*
 import com.example.meta_my_memory.utils.EXTRA_BOARD_SIZE
 import com.example.meta_my_memory.utils.EXTRA_GAME_NAME
+import com.google.firebase.firestore.ktx.toObject
 import com.squareup.picasso.Picasso
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -220,7 +221,18 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun setupBoard() {
-    supportActionBar?.title = gameName ?: getString(R.string.app_name)
+
+    db.collection("games").document(gameName ?: "[default]").get()
+      .addOnSuccessListener { document ->
+        val data = document.toObject(MemoryScore::class.java);
+
+        if(data == null || data.scores == null) {
+          supportActionBar?.title = "Highest Score: 0";
+        }else {
+          supportActionBar?.title = "Highest Score: ${data.scores.highest_score}";
+        }
+      }
+
     memoryGame = MemoryGame(boardSize, customGameImages)
     when (boardSize) {
       BoardSize.EASY -> {
@@ -247,6 +259,27 @@ class MainActivity : AppCompatActivity() {
     rvBoard.layoutManager = GridLayoutManager(this, boardSize.getWidth())
   }
 
+  private fun saveHighestScore(gameName: String, highest_score: Int, board_size: String) {
+    db.collection("games").document(gameName)
+      .update("scores", object {
+          val highest_score = highest_score;
+          val board_size = board_size;
+      })
+      .addOnCompleteListener(this) { task ->
+        if (task.isSuccessful) {
+          Log.i(TAG, "Save score succeeded,  ${task.result}");
+          showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${board_size}, Highest score: $highest_score", null, View.OnClickListener {
+
+          })
+
+        } else {
+          Log.e(TAG, "Save score failed")
+        }
+      };
+
+  }
+
+  // check win or not
   private fun updateGameWithFlip(position: Int) {
     // Error handling:
     if (memoryGame.haveWonGame()) {
@@ -271,6 +304,26 @@ class MainActivity : AppCompatActivity() {
       if (memoryGame.haveWonGame()) {
         Snackbar.make(clRoot, "You won! Congratulations.", Snackbar.LENGTH_LONG).show()
         CommonConfetti.rainingConfetti(clRoot, intArrayOf(Color.YELLOW, Color.GREEN, Color.MAGENTA)).oneShot()
+
+        db.collection("games").document(gameName ?: "[default]").get()
+          .addOnSuccessListener{ document ->
+           val data = document.toObject(MemoryScore::class.java);
+            Log.i(TAG, "data,  ${data}");
+            if(data?.scores != null && data.scores.highest_score != -1 && memoryGame.getNumMoves() < data.scores.highest_score!!) {
+              saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name);
+            }else {
+              if(data?.scores == null || data.scores.highest_score == -1) {
+                saveHighestScore(gameName ?: "[default]", memoryGame.getNumMoves(), boardSize.name);
+              }else {
+                  showAlertDialog("Your score is ${memoryGame.getNumMoves()} with difficult ${boardSize.name}, Highest score: ${data.scores.highest_score}", null, View.OnClickListener {
+
+                })
+              }
+            }
+          };
+
+
+
         firebaseAnalytics.logEvent("won_game") {
           param("game_name", gameName ?: "[default]")
           param("board_size", boardSize.name)

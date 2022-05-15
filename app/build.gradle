@@ -7,7 +7,6 @@ plugins {
 
 android {
     compileSdkVersion 30
-    buildToolsVersion "30.0.2"
 
     defaultConfig {
         applicationId "com.example.meta_my_memory"
@@ -32,6 +31,7 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    namespace 'com.example.meta_my_memory'
 }
 
 dependencies {
