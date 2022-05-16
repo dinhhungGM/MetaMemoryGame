@@ -63,7 +63,7 @@ class MemoryBoardAdapter(
           imageButton.setImageResource(memoryCard.identifier)
         }
       } else {
-        imageButton.setImageResource(R.drawable.bamboo)
+        imageButton.setImageResource(R.drawable.background)
       }
       imageButton.alpha = if (memoryCard.isMatched) .4f else 1f
       val colorStateList = if (memoryCard.isMatched) ContextCompat.getColorStateList(context, R.color.color_gray) else null

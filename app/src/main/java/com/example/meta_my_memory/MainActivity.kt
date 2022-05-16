@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -55,6 +56,9 @@ class MainActivity : AppCompatActivity() {
   private lateinit var adapter: MemoryBoardAdapter
   private var boardSize = BoardSize.EASY
 
+  private lateinit var mp: MediaPlayer
+
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
@@ -62,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     rvBoard = findViewById(R.id.rvBoard)
     tvNumMoves = findViewById(R.id.tvNumMoves)
     tvNumPairs = findViewById(R.id.tvNumPairs)
+    mp = MediaPlayer.create(this, R.raw.votay)
 
     remoteConfig.setDefaultsAsync(mapOf("about_link" to "https://www.youtube.com/rpandey1234", "scaled_height" to 250L, "compress_quality" to 60L))
     remoteConfig.fetchAndActivate()
@@ -327,6 +332,9 @@ class MainActivity : AppCompatActivity() {
       if (memoryGame.haveWonGame()) {
         Snackbar.make(clRoot, "You won! Congratulations.", Snackbar.LENGTH_LONG).show()
         CommonConfetti.rainingConfetti(clRoot, intArrayOf(Color.YELLOW, Color.GREEN, Color.MAGENTA)).oneShot()
+
+        //Song music
+        mp.start()
 
         db.collection("games").document(gameName ?: "[default]").get()
           .addOnSuccessListener{ document ->
