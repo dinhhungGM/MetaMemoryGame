@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     tvNumPairs = findViewById(R.id.tvNumPairs)
     mp = MediaPlayer.create(this, R.raw.votay)
 
-    remoteConfig.setDefaultsAsync(mapOf("about_link" to "https://www.youtube.com/rpandey1234", "scaled_height" to 250L, "compress_quality" to 60L))
+    remoteConfig.setDefaultsAsync(mapOf("about_link" to "https://github.com/dinhhungGM/MetaMemoryGame", "scaled_height" to 250L, "compress_quality" to 60L))
     remoteConfig.fetchAndActivate()
       .addOnCompleteListener(this) { task ->
         if (task.isSuccessful) {
